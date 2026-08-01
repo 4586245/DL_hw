@@ -38,6 +38,9 @@ class LFCC(nn.Module):
         d1 = self.deltas(feats)
         d2 = self.deltas(d1)
         feats = torch.cat([feats, d1, d2], dim=0)  # (60, frames)
+        feats = (feats - feats.mean(dim=-1, keepdim=True)) / (
+            feats.std(dim=-1, keepdim=True) + 1e-8
+        )
 
         return self._trim_pad(feats)
 
