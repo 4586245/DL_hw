@@ -1,5 +1,5 @@
 defaults:
-  - model: lcnn
+  - model: lcnn_onebatch
   - writer: wandb
   - metrics: asvspoof
   - datasets: asvspoof_onebatch

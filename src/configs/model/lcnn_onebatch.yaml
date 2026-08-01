@@ -1,0 +1,5 @@
+_target_: src.model.LCNN
+in_freq: 257
+compressed: 60
+dropout: 0.0
+n_class: 2
