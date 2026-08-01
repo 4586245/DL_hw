@@ -33,10 +33,14 @@ def linear_filterbank(n_freq, n_filter, sample_rate=16000):
 class LCNN(nn.Module):
     def __init__(self, in_freq=257, compressed=60, dropout=0.75, n_class=2):
         super().__init__()
-        self.freq_compress = nn.Linear(in_freq, compressed)
-        with torch.no_grad():
-            self.freq_compress.weight.copy_(linear_filterbank(in_freq, compressed))
-            self.freq_compress.bias.zero_()
+        if in_freq == compressed:
+            self.freq_compress = nn.Identity()
+        else:
+            self.freq_compress = nn.Linear(in_freq, compressed)
+
+            with torch.no_grad():
+                self.freq_compress.weight.copy_(linear_filterbank(in_freq, compressed))
+                self.freq_compress.bias.zero_()
         self.conv = nn.Sequential(
             nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=2),
             MFM(),
