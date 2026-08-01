@@ -33,9 +33,6 @@ class Spectrogram(nn.Module):
             return_complex=True,
         )
         spec = torch.log(spec.abs().pow(2) + self.eps)
-        spec = (spec - spec.mean(dim=-1, keepdim=True)) / (
-            spec.std(dim=-1, keepdim=True) + 1e-8
-        )
         return self._trim_pad(spec)
 
     def _trim_pad(self, spec):
