@@ -1,0 +1,12 @@
+train:
+  _target_: src.datasets.ASVsDataset
+  audio_dir: /kaggle/input/asvpoof-2019-dataset/LA/LA/ASVspoof2019_LA_train/flac
+  protocol_path: /kaggle/input/asvpoof-2019-dataset/LA/LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt
+  instance_transforms: ${transforms.instance_transforms.train}
+  limit: 64
+dev:
+  _target_: src.datasets.ASVsDataset
+  audio_dir: /kaggle/input/asvpoof-2019-dataset/LA/LA/ASVspoof2019_LA_train/flac
+  protocol_path: /kaggle/input/asvpoof-2019-dataset/LA/LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt
+  instance_transforms: ${transforms.instance_transforms.inference}
+  limit: 64
