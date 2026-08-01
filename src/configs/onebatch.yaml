@@ -15,7 +15,7 @@ lr_scheduler:
   step_size: 10
 loss_function:
   _target_: src.loss.LcnnLoss
-  weight: [1.0, 9.0]
+  weight: null
 trainer:
   log_step: 5
   n_epochs: 50

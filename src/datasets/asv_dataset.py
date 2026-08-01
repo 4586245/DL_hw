@@ -26,7 +26,7 @@ class ASVsDataset(BaseDataset):
                 index.append(
                     {
                         "path": str(audio_dir / f"{utt_id}.flac"),
-                        "label": 1 if label == "bonafid" else 0,
+                        "label": 1 if label == "bonafide" else 0,
                     }
                 )
         return index
