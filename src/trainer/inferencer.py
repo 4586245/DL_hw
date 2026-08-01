@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 from tqdm.auto import tqdm
 
@@ -129,26 +131,8 @@ class Inferencer(BaseTrainer):
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
 
-        batch_size = batch["logits"].shape[0]
-        current_id = batch_idx * batch_size
-
-        for i in range(batch_size):
-            # clone because of
-            # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
-
-            output_id = current_id + i
-
-            output = {
-                "pred_label": pred_label,
-                "label": label,
-            }
-
-            if self.save_path is not None:
-                # you can use safetensors or other lib here
-                torch.save(output, self.save_path / part / f"output_{output_id}.pth")
+        scores = torch.softmax(batch["logits"], dim=-1)[:, 1]
+        self._scores.extend(scores.detach().cpu().tolist())
 
         return batch
 
@@ -167,6 +151,7 @@ class Inferencer(BaseTrainer):
         self.model.eval()
 
         self.evaluation_metrics.reset()
+        self._scores = []
 
         # create Save dir
         if self.save_path is not None:
@@ -184,5 +169,17 @@ class Inferencer(BaseTrainer):
                     part=part,
                     metrics=self.evaluation_metrics,
                 )
+
+        # write submission csv: utterance_id,score
+        if self.save_path is not None:
+            index = dataloader.dataset._index
+            assert len(index) == len(self._scores), "score/index length mismatch"
+
+            csv_path = self.save_path / f"{part}_scores.csv"
+            with open(csv_path, "w") as f:
+                for entry, score in zip(index, self._scores):
+                    utt_id = Path(entry["path"]).stem
+                    f.write(f"{utt_id},{score}\n")
+            print(f"Saved predictions to {csv_path}")
 
         return self.evaluation_metrics.result()
