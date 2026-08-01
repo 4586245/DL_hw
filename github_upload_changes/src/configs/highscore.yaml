@@ -1,0 +1,42 @@
+defaults:
+  - model: lcnn_mel
+  - writer: wandb
+  - metrics: asvspoof
+  - datasets: asvspoof_train_dev
+  - dataloader: asvspoof
+  - transforms: asvspoof_mel
+  - _self_
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 1e-4
+  weight_decay: 1e-4
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: 30
+  eta_min: 1e-5
+loss_function:
+  _target_: src.loss.LcnnLoss
+  weight: null
+trainer:
+  log_step: 50
+  n_epochs: 30
+  epoch_len: null
+  device_tensors: ["data_object", "labels"]
+  resume_from: null
+  device: auto
+  override: true
+  monitor: "min dev_EER"
+  save_period: 5
+  early_stop: 30
+  skip_oom: false
+  train_drop_last: false
+  model_init_warmups: 1
+  save_dir: "saved"
+  seed: 14
+dataloader:
+  batch_size: 16
+  num_workers: 2
+  pin_memory: true
+writer:
+  run_name: "lcnn-mel-highscore"
