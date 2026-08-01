@@ -13,10 +13,30 @@ class MFM(nn.Module):
         return torch.max(a, b)
 
 
+def linear_filterbank(n_freq, n_filter, sample_rate=16000):
+    f_max = sample_rate / 2
+    edges = torch.linspace(0, f_max, n_filter + 2)
+    freqs = torch.linspace(0, f_max, n_freq)
+
+    fb = torch.zeros(n_filter, n_freq)
+    for i in range(n_filter):
+        left, center, right = edges[i], edges[i + 1], edges[i + 2]
+
+        rising = (freqs - left) / (center - left)
+        falling = (right - freqs) / (right - center)
+
+        fb[i] = torch.clamp(torch.minimum(rising, falling), min=0.0)
+
+    return fb
+
+
 class LCNN(nn.Module):
     def __init__(self, in_freq=257, compressed=60, dropout=0.75, n_class=2):
         super().__init__()
         self.freq_compress = nn.Linear(in_freq, compressed)
+        with torch.no_grad():
+            self.freq_compress.weight.copy_(linear_filterbank(in_freq, compressed))
+            self.freq_compress.bias.zero_()
         self.conv = nn.Sequential(
             nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=2),
             MFM(),
