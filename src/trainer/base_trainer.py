@@ -263,6 +263,9 @@ class BaseTrainer:
         self.is_train = False
         self.model.eval()
         self.evaluation_metrics.reset()
+        for met in self.metrics["inference"]:
+            if hasattr(met, "reset"):
+                met.reset()
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
