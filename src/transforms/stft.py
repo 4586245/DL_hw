@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 
-class spectrogram(nn.Module):
+class Spectrogram(nn.Module):
     def __init__(
         self,
         n_fft=512,
