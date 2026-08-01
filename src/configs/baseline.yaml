@@ -15,10 +15,10 @@ lr_scheduler:
   step_size: 10
 loss_function:
   _target_: src.loss.LcnnLoss
-  weight: [1.0, 3.0]
+  weight: null
 trainer:
   log_step: 50
-  n_epochs: 30
+  n_epochs: 20
   epoch_len: null
   device_tensors: ["data_object", "labels"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
