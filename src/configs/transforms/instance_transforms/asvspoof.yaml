@@ -2,11 +2,11 @@ train:
   data_object:
     _target_: torchvision.transforms.v2.Compose
     transforms:
-      - _target_: src.transforms.Spectrogram
+      - _target_: src.transforms.LFCC
         is_train: true
 inference:
   data_object:
     _target_: torchvision.transforms.v2.Compose
     transforms:
-      - _target_: src.transforms.Spectrogram
+      - _target_: src.transforms.LFCC
         is_train: false
