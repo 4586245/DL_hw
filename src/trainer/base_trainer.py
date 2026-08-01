@@ -166,6 +166,9 @@ class BaseTrainer:
             self._last_epoch = epoch
             result = self._train_epoch(epoch)
 
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step()
+
             # save logged information into logs dict
             logs = {"epoch": epoch}
             logs.update(result)
@@ -233,14 +236,12 @@ class BaseTrainer:
                 )
                 self._log_scalars(self.train_metrics)
                 self._log_batch(batch_idx, batch)
-                # we don't want to reset train metrics at the start of every epoch
-                # because we are interested in recent train metrics
-                last_train_metrics = self.train_metrics.result()
-                self.train_metrics.reset()
             if batch_idx + 1 >= self.epoch_len:
                 break
 
-        logs = last_train_metrics
+        logs = self.train_metrics.result()
+        self.writer.set_step(epoch * self.epoch_len - 1)
+        self._log_scalars(self.train_metrics)
 
         # Run val/test
         for part, dataloader in self.evaluation_dataloaders.items():
@@ -276,6 +277,9 @@ class BaseTrainer:
                     batch,
                     metrics=self.evaluation_metrics,
                 )
+            for met in self.metrics["inference"]:
+                if hasattr(met, "compute"):
+                    self.evaluation_metrics.set(met.name, met.compute())
             self.writer.set_step(epoch * self.epoch_len, part)
             self._log_scalars(self.evaluation_metrics)
             self._log_batch(
@@ -502,7 +506,11 @@ class BaseTrainer:
         """
         resume_path = str(resume_path)
         self.logger.info(f"Loading checkpoint: {resume_path} ...")
-        checkpoint = torch.load(resume_path, self.device)
+        checkpoint = torch.load(
+            resume_path,
+            map_location=self.device,
+            weights_only=False,
+        )
         self.start_epoch = checkpoint["epoch"] + 1
         self.mnt_best = checkpoint["monitor_best"]
 
@@ -548,7 +556,11 @@ class BaseTrainer:
             self.logger.info(f"Loading model weights from: {pretrained_path} ...")
         else:
             print(f"Loading model weights from: {pretrained_path} ...")
-        checkpoint = torch.load(pretrained_path, self.device)
+        checkpoint = torch.load(
+            pretrained_path,
+            map_location=self.device,
+            weights_only=False,
+        )
 
         if checkpoint.get("state_dict") is not None:
             self.model.load_state_dict(checkpoint["state_dict"])

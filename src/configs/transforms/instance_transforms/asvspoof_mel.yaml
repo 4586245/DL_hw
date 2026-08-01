@@ -1,0 +1,16 @@
+train:
+  data_object:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.transforms.MelSpectrogram
+        n_mels: 64
+        num_frames: 600
+        is_train: false
+inference:
+  data_object:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.transforms.MelSpectrogram
+        n_mels: 64
+        num_frames: 600
+        is_train: false

@@ -127,6 +127,7 @@ class WandBWriter:
                 self._object_name(scalar_name): scalar,
             },
             step=self.step,
+            commit=False,
         )
 
     def add_scalars(self, scalars):
@@ -142,6 +143,7 @@ class WandBWriter:
                 for scalar_name, scalar in scalars.items()
             },
             step=self.step,
+            commit=False,
         )
 
     def add_image(self, image_name, image):
@@ -228,3 +230,6 @@ class WandBWriter:
 
     def add_embedding(self, embedding_name, embedding):
         raise NotImplementedError()
+
+    def finish(self):
+        self.wandb.finish()

@@ -31,7 +31,14 @@ def linear_filterbank(n_freq, n_filter, sample_rate=16000):
 
 
 class LCNN(nn.Module):
-    def __init__(self, in_freq=257, compressed=60, dropout=0.75, n_class=2):
+    def __init__(
+        self,
+        in_freq=257,
+        compressed=60,
+        num_frames=750,
+        dropout=0.75,
+        n_class=2,
+    ):
         super().__init__()
         if in_freq == compressed:
             self.freq_compress = nn.Identity()
@@ -73,7 +80,7 @@ class LCNN(nn.Module):
         )
 
         self.head = nn.Sequential(
-            nn.Linear(32 * 3 * 46, 160),
+            nn.Linear(32 * (compressed // 16) * (num_frames // 16), 160),
             MFM(),
             nn.Dropout(dropout),
             nn.BatchNorm1d(80),
@@ -100,3 +107,66 @@ class LCNN(nn.Module):
         res = res + f"\nAll parameters: {params}"
         res = res + f"\nTrainable parameters: {train_params}"
         return res
+
+
+class MFMConv2d(nn.Module):
+    """Convolution followed by channel-wise Max-Feature-Map."""
+
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
+        super().__init__()
+        self.conv = nn.Conv2d(
+            in_channels,
+            out_channels * 2,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+        )
+
+    def forward(self, x):
+        return MFM()(self.conv(x))
+
+
+class LCNNHighScore(nn.Module):
+    """High-score LCNN variant."""
+
+    def __init__(self, n_class=2, dropout=0.75):
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=2),
+            MFMConv2d(64, 32),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(32, 64, kernel_size=1),
+            MFMConv2d(64, 32),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 96, kernel_size=3, padding=1),
+            MFMConv2d(96, 48),
+            nn.MaxPool2d(2, 2),
+            nn.BatchNorm2d(48),
+            nn.Conv2d(48, 96, kernel_size=1),
+            MFMConv2d(96, 48),
+            nn.BatchNorm2d(48),
+            nn.Conv2d(48, 128, kernel_size=3, padding=1),
+            MFMConv2d(128, 64),
+            nn.MaxPool2d(2, 2),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 128, kernel_size=1),
+            MFMConv2d(128, 64),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            MFMConv2d(64, 32),
+            nn.MaxPool2d(2, 2),
+            nn.BatchNorm2d(32),
+        )
+        self.head = nn.Sequential(
+            nn.LazyLinear(160),
+            MFM(),
+            nn.Dropout(dropout),
+            nn.BatchNorm1d(80),
+            nn.Linear(80, n_class),
+        )
+
+    def forward(self, data_object, **batch):
+        x = data_object.unsqueeze(1)
+        x = self.features(x)
+        logits = self.head(x.flatten(1))
+        return {"logits": logits}

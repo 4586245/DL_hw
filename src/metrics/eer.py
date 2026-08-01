@@ -16,6 +16,14 @@ class EerMetric(BaseMetric):
         self._scores.append(scores.detach().cpu())
         self._labels.append(labels.detach().cpu())
 
+        # EER is computed over the complete partition in compute().
+        return 0.0
+
+    def compute(self):
+        """Compute EER for accumulated samples."""
+        if not self._scores:
+            return 0.0
+
         all_scores = torch.cat(self._scores)
         all_labels = torch.cat(self._labels)
 
@@ -23,7 +31,7 @@ class EerMetric(BaseMetric):
         spoof = all_scores[all_labels == 0].numpy()
 
         if len(bona) == 0 or len(spoof) == 0:
-            return 0.0
+            raise ValueError("EER requires both bonafide and spoof samples")
 
         eer, _ = compute_eer(bona, spoof)
         return eer * 100  # as in grading.py

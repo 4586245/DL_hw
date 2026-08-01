@@ -151,6 +151,9 @@ class Inferencer(BaseTrainer):
         self.model.eval()
 
         self.evaluation_metrics.reset()
+        for met in self.metrics["inference"]:
+            if hasattr(met, "reset"):
+                met.reset()
         self._scores = []
 
         # create Save dir
@@ -175,11 +178,18 @@ class Inferencer(BaseTrainer):
             index = dataloader.dataset._index
             assert len(index) == len(self._scores), "score/index length mismatch"
 
-            csv_path = self.save_path / f"{part}_scores.csv"
+            output_filename = self.cfg_trainer.get("output_filename")
+            csv_path = self.save_path / (
+                output_filename if output_filename else f"{part}_scores.csv"
+            )
             with open(csv_path, "w") as f:
                 for entry, score in zip(index, self._scores):
                     utt_id = Path(entry["path"]).stem
                     f.write(f"{utt_id},{score}\n")
             print(f"Saved predictions to {csv_path}")
 
-        return self.evaluation_metrics.result()
+        result = self.evaluation_metrics.result()
+        for met in self.metrics["inference"]:
+            if hasattr(met, "compute"):
+                result[met.name] = met.compute()
+        return result

@@ -1,0 +1,3 @@
+_target_: src.model.LCNNHighScore
+dropout: 0.75
+n_class: 2

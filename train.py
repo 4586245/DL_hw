@@ -24,20 +24,35 @@ def main(config):
     """
     set_random_seed(config.trainer.seed)
 
-    project_config = OmegaConf.to_container(config)
-    logger = setup_saving_and_logging(config)
-    writer = instantiate(config.writer, logger, project_config)
-
     if config.trainer.device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
         device = config.trainer.device
+
+    model_init_warmups = config.trainer.get("model_init_warmups", 0)
+    for _ in range(model_init_warmups):
+        warmup_model = instantiate(config.model).to(device)
+        del warmup_model
+    model_rng_state = torch.get_rng_state() if model_init_warmups else None
+    cuda_rng_states = (
+        torch.cuda.get_rng_state_all()
+        if model_init_warmups and str(device).startswith("cuda")
+        else None
+    )
+
+    project_config = OmegaConf.to_container(config)
+    logger = setup_saving_and_logging(config)
+    writer = instantiate(config.writer, logger, project_config)
 
     # setup data_loader instances
     # batch_transforms should be put on device
     dataloaders, batch_transforms = get_dataloaders(config, device)
 
     # build model architecture, then print to console
+    if model_rng_state is not None:
+        torch.set_rng_state(model_rng_state)
+    if cuda_rng_states is not None:
+        torch.cuda.set_rng_state_all(cuda_rng_states)
     model = instantiate(config.model).to(device)
     logger.info(model)
 
@@ -70,7 +85,11 @@ def main(config):
         skip_oom=config.trainer.get("skip_oom", True),
     )
 
-    trainer.train()
+    try:
+        trainer.train()
+    finally:
+        if hasattr(writer, "finish"):
+            writer.finish()
 
 
 if __name__ == "__main__":

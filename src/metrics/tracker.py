@@ -16,7 +16,12 @@ class MetricTracker:
                 from each batch.
         """
         self.writer = writer
-        self._data = pd.DataFrame(index=keys, columns=["total", "counts", "average"])
+        self._data = pd.DataFrame(
+            0.0,
+            index=keys,
+            columns=["total", "counts", "average"],
+            dtype=float,
+        )
         self.reset()
 
     def reset(self):
@@ -24,7 +29,7 @@ class MetricTracker:
         Reset all metrics after epoch end.
         """
         for col in self._data.columns:
-            self._data[col].values[:] = 0
+            self._data[col] = 0.0
 
     def update(self, key, value, n=1):
         """
@@ -51,6 +56,12 @@ class MetricTracker:
             average_value (float): average value for the metric.
         """
         return self._data.average[key]
+
+    def set(self, key, value):
+        """Set an exact metric value."""
+        self._data.loc[key, "total"] = value
+        self._data.loc[key, "counts"] = 1
+        self._data.loc[key, "average"] = value
 
     def result(self):
         """

@@ -73,7 +73,7 @@ class CometMLWriter:
                 self.exp.set_name(run_name)
                 self.exp.log_parameters(parameters=project_config)
 
-            self.comel_ml = comet_ml
+            self.comet_ml = comet_ml
 
         except ImportError:
             logger.warning("For use comet_ml install it via \n\t pip install comet_ml")
@@ -256,3 +256,6 @@ class CometMLWriter:
 
     def add_embedding(self, embedding_name, embedding):
         raise NotImplementedError()
+
+    def finish(self):
+        self.exp.end()

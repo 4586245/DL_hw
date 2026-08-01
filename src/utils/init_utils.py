@@ -77,13 +77,24 @@ def log_git_commit_and_patch(save_dir):
     Args:
         save_dir (Path): directory to save patch and commit in
     """
+    is_repository = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=ROOT_PATH,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 0
+    if not is_repository:
+        print("Skipping git metadata: project directory is not a git repository.")
+        return
+
     print("Logging git commit and patch...")
     commit_path = save_dir / "git_commit.txt"
     patch_path = save_dir / "git_diff.patch"
     with commit_path.open("w") as f:
-        subprocess.call(["git", "rev-parse", "HEAD"], stdout=f)
+        subprocess.call(["git", "rev-parse", "HEAD"], cwd=ROOT_PATH, stdout=f)
     with patch_path.open("w") as f:
-        subprocess.call(["git", "diff", "HEAD"], stdout=f)
+        subprocess.call(["git", "diff", "HEAD"], cwd=ROOT_PATH, stdout=f)
 
 
 def resume_config(save_dir):
